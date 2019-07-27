@@ -46,7 +46,7 @@ class BatchExporter(bpy.types.Operator):
             #store object location then zero it out
             location = ob.location.copy()
             bpy.ops.object.location_clear()
-            
+            bpy.ops.object.select_grouped(type='CHILDREN_RECURSIVE')
             #export fbx
             filename = bpy.path.abspath("//") + ob.name + '.fbx'
             print("Wrote to: " + filename)
@@ -59,7 +59,7 @@ class BatchExporter(bpy.types.Operator):
         for ob in objs:
             ob.select_set(state=True)
         return { 'FINISHED' }
-    
+ 
 
 def register():
     bpy.utils.register_class(LayoutPanel)
