@@ -1,45 +1,105 @@
-import bpy
-
-bl_info={
-"name": "Blender Batch Exporter",
-"author": "Mitch McCollum",
-"version": (1, 0),
-"blender": (2, 80, 0),
-"location": "",
-"description": "Batch Exports objects to you blend file directory",
-"warning": "",
-"category": "Mesh"
+bl_info = {
+    "name": "Batch Exporter",
+    "description": "",
+    "author": "Mitch McCollum",
+    "version": (0, 0, 2),
+    "blender": (2, 80, 0),
+    "location": "3D View > Tools",
+    "warning": "", # used for warning icon and text in addons panel
+    "wiki_url": "",
+    "tracker_url": "",
+    "category": "Development"
 }
 
-class LayoutPanel(bpy.types.Panel):
-    """Creates a Panel in the Sidebar"""
-    bl_label = "Batch Exporter"
-    bl_idname = "SCENE_PT_Batch_Exporter"
-    bl_space_type = 'VIEW_3D'
-    bl_region_type = 'UI'
-    bl_category = 'BatchExport'
-    
-    
-    def draw(self, context):
-        layout = self.layout
 
-        obj = context.object
+import bpy
 
-        row = layout.row()
-        row.operator("object.batchexporter", text = 'Batch Export')
-        
-        
-class BatchExporter(bpy.types.Operator):
-    bl_idname = "object.batchexporter"
-    bl_label = "Invokes Batch Exporter"
-    
+from bpy.props import (StringProperty,
+                       BoolProperty,
+                       IntProperty,
+                       FloatProperty,
+                       FloatVectorProperty,
+                       EnumProperty,
+                       PointerProperty,
+                       )
+from bpy.types import (Panel,
+                       Menu,
+                       Operator,
+                       PropertyGroup,
+                       )
+
+
+# ------------------------------------------------------------------------
+#    Scene Properties
+# ------------------------------------------------------------------------
+
+class MyProperties(PropertyGroup):
+
+    batchRenameBool: BoolProperty(
+        name="Batch Rename",
+        description="Batch Rename",
+        default = False
+        )
+
+    my_int: IntProperty(
+        name = "Int Value",
+        description="A integer property",
+        default = 23,
+        min = 10,
+        max = 100
+        )
+
+    my_float: FloatProperty(
+        name = "Float Value",
+        description = "A float property",
+        default = 23.7,
+        min = 0.01,
+        max = 30.0
+        )
+
+    my_float_vector: FloatVectorProperty(
+        name = "Float Vector Value",
+        description="Something",
+        default=(0.0, 0.0, 0.0), 
+        min= 0.0, # float
+        max = 0.1
+        ) 
+
+    my_string: StringProperty(
+        name="Name",
+        description=":",
+        default="",
+        maxlen=1024,
+        )
+
+    my_enum: EnumProperty(
+        name="Dropdown:",
+        description="Apply Data to attribute.",
+        items=[ ('OP1', "Option 1", ""),
+                ('OP2', "Option 2", ""),
+                ('OP3', "Option 3", ""),
+               ]
+        )
+
+# ------------------------------------------------------------------------
+#    Operators
+# ------------------------------------------------------------------------
+
+class WM_OT_HelloWorld(Operator):
+    bl_idname = "wm.hello_world"
+    bl_label = "Batch Export"
+
     def execute(self,context):
         #store selection
         objs = bpy.context.selected_objects
         bpy.ops.object.select_all(action='DESELECT')
-               
+        scene = context.scene
+        mytool = scene.my_tool
+        index = 0
         for ob in objs:
-            
+            index += 1
+            if mytool.batchRenameBool == True:
+                ob.name = mytool.my_string + str(index)
             ob.select_set(state=True)
             bpy.context.view_layer.objects.active = ob
             
@@ -59,17 +119,81 @@ class BatchExporter(bpy.types.Operator):
         for ob in objs:
             ob.select_set(state=True)
         return { 'FINISHED' }
- 
+
+    
+
+# ------------------------------------------------------------------------
+#    Menus
+# ------------------------------------------------------------------------
+
+class OBJECT_MT_CustomMenu(bpy.types.Menu):
+    bl_idname = "object.custom_menu"
+    bl_label = "Select"
+
+    def draw(self, context):
+        layout = self.layout
+
+        # Built-in operators
+        layout.operator("object.select_all", text="Select/Deselect All").action = 'TOGGLE'
+        layout.operator("object.select_all", text="Inverse").action = 'INVERT'
+        layout.operator("object.select_random", text="Random")
+
+# ------------------------------------------------------------------------
+#    Panel in Object Mode
+# ------------------------------------------------------------------------
+
+class OBJECT_PT_CustomPanel(Panel):
+    bl_idname = "object.custom_panel"
+    bl_label = "Batch Exporter"
+    bl_space_type = "VIEW_3D"   
+    bl_region_type = "UI"
+    bl_category = "BatchExport"
+    bl_context = "objectmode"   
+
+
+    @classmethod
+    def poll(self,context):
+        return context.object is not None
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        mytool = scene.my_tool
+
+        layout.prop(mytool, "batchRenameBool")
+        #layout.prop(mytool, "my_enum", text="") 
+        #layout.prop(mytool, "my_int")
+        #layout.prop(mytool, "my_float")
+        #layout.prop(mytool, "my_float_vector", text="")
+        layout.prop(mytool, "my_string")
+        layout.operator("wm.hello_world")
+        #layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
+        layout.separator()
+
+# ------------------------------------------------------------------------
+#    Registration
+# ------------------------------------------------------------------------
+
+classes = (
+    MyProperties,
+    WM_OT_HelloWorld,
+    OBJECT_MT_CustomMenu,
+    OBJECT_PT_CustomPanel
+)
 
 def register():
-    bpy.utils.register_class(LayoutPanel)
-    bpy.utils.register_class(BatchExporter)
-        
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
 
+    bpy.types.Scene.my_tool = PointerProperty(type=MyProperties)
 
 def unregister():
-    bpy.utils.unregister_class(HelloWorldPanel)
-    bpy.utils.unregister_class(BatchExport)
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
+    del bpy.types.Scene.my_tool
+
 
 if __name__ == "__main__":
     register()
