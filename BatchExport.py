@@ -41,35 +41,13 @@ class MyProperties(PropertyGroup):
         default = False
         )
 
-    my_int: IntProperty(
-        name = "Int Value",
-        description="A integer property",
-        default = 23,
-        min = 10,
-        max = 100
-        )
+ 
 
-    my_float: FloatProperty(
-        name = "Float Value",
-        description = "A float property",
-        default = 23.7,
-        min = 0.01,
-        max = 30.0
-        )
-
-    my_float_vector: FloatVectorProperty(
-        name = "Float Vector Value",
-        description="Something",
-        default=(0.0, 0.0, 0.0), 
-        min= 0.0, # float
-        max = 0.1
-        ) 
-
-    my_string: StringProperty(
+    BulkRename: StringProperty(
         name="Name",
         description=":",
         default="",
-        maxlen=1024,
+        maxlen=1024,      
         )
 
     my_enum: EnumProperty(
@@ -85,8 +63,8 @@ class MyProperties(PropertyGroup):
 #    Operators
 # ------------------------------------------------------------------------
 
-class WM_OT_HelloWorld(Operator):
-    bl_idname = "wm.hello_world"
+class WM_OT_BatchExport(Operator):
+    bl_idname = "wm.batch_export"
     bl_label = "Batch Export"
 
     def execute(self,context):
@@ -95,11 +73,12 @@ class WM_OT_HelloWorld(Operator):
         bpy.ops.object.select_all(action='DESELECT')
         scene = context.scene
         mytool = scene.my_tool
+        
         index = 0
         for ob in objs:
             index += 1
             if mytool.batchRenameBool == True:
-                ob.name = mytool.my_string + str(index)
+                ob.name = mytool.BulkRename + str(index)
             ob.select_set(state=True)
             bpy.context.view_layer.objects.active = ob
             
@@ -159,14 +138,11 @@ class OBJECT_PT_CustomPanel(Panel):
         layout = self.layout
         scene = context.scene
         mytool = scene.my_tool
-
+        
         layout.prop(mytool, "batchRenameBool")
-        #layout.prop(mytool, "my_enum", text="") 
-        #layout.prop(mytool, "my_int")
-        #layout.prop(mytool, "my_float")
-        #layout.prop(mytool, "my_float_vector", text="")
-        layout.prop(mytool, "my_string")
-        layout.operator("wm.hello_world")
+
+        layout.prop(mytool, "BulkRename")
+        layout.operator("wm.batch_export")
         #layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
         layout.separator()
 
@@ -176,7 +152,7 @@ class OBJECT_PT_CustomPanel(Panel):
 
 classes = (
     MyProperties,
-    WM_OT_HelloWorld,
+    WM_OT_BatchExport,
     OBJECT_MT_CustomMenu,
     OBJECT_PT_CustomPanel
 )
