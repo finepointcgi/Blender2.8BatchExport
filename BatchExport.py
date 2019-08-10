@@ -13,6 +13,7 @@ bl_info = {
 
 
 import bpy
+import os
 
 from bpy.props import (StringProperty,
                        BoolProperty,
@@ -33,8 +34,21 @@ from bpy.types import (Panel,
 #    Scene Properties
 # ------------------------------------------------------------------------
 
+class Utilities():
+    def make_path_absolute(self,key): 
+    #""" Prevent Blender's relative paths of doom """ 
+    # This can be a collection property or addon preferences 
+        props = bpy.context.scene.my_tool
+        sane_path = lambda p: os.path.abspath(bpy.path.abspath(p)) 
+        
+        if key in props and props[key].startswith('//'): 
+            props[key] = sane_path(props[key]) 
+
+u = Utilities()
+
 class MyProperties(PropertyGroup):
 
+    
     batchRenameBool: BoolProperty(
         name="Batch Rename",
         description="Batch Rename",
@@ -49,7 +63,15 @@ class MyProperties(PropertyGroup):
         default="",
         maxlen=1024,      
         )
-
+    FilePath: StringProperty(
+        name="File Path",
+        description=":",
+        default="",
+        maxlen=1024,
+        subtype='DIR_PATH',
+        update = lambda s,c: u.make_path_absolute('FilePath'),
+    )
+    
     my_enum: EnumProperty(
         name="Dropdown:",
         description="Apply Data to attribute.",
@@ -58,6 +80,7 @@ class MyProperties(PropertyGroup):
                 ('OP3', "Option 3", ""),
                ]
         )
+    
 
 # ------------------------------------------------------------------------
 #    Operators
@@ -87,7 +110,10 @@ class WM_OT_BatchExport(Operator):
             bpy.ops.object.location_clear()
             bpy.ops.object.select_grouped(type='CHILDREN_RECURSIVE')
             #export fbx
-            filename = bpy.path.abspath("//") + ob.name + '.fbx'
+            if mytool.FilePath != "":
+                filename = mytool.FilePath + ob.name + '.fbx'
+            else:
+                filename = bpy.path.abspath("//") + ob.name + '.fbx'
             print("Wrote to: " + filename)
             bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
             
@@ -98,6 +124,8 @@ class WM_OT_BatchExport(Operator):
         for ob in objs:
             ob.select_set(state=True)
         return { 'FINISHED' }
+    
+   
 
     
 
@@ -142,6 +170,7 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "batchRenameBool")
 
         layout.prop(mytool, "BulkRename")
+        layout.prop(mytool, "FilePath")
         layout.operator("wm.batch_export")
         #layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
         layout.separator()
