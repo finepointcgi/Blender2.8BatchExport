@@ -59,11 +59,7 @@ class MyProperties(PropertyGroup):
         default = False
         )
         
-    exportForUnity: BoolProperty(
-        name="Unity Export",
-        description="Unity Export",
-        default = False
-        )
+
         
     batchApplyBool: BoolProperty(
         name="Apply Transform",
@@ -92,6 +88,14 @@ class MyProperties(PropertyGroup):
         description="What File Format",
         items=[ ('F', "FBX", ""),
                 ('O', "OBJ", ""),
+               ]
+        )
+    Engine: EnumProperty(
+        name="Engine",
+        description="What Engine",
+        items=[ ('None', "None", ""),
+                ('Unity', "Unity", ""),
+                ('Unreal', "Unreal", ""),
                ]
         )
     
@@ -123,10 +127,11 @@ class WM_OT_BatchExport(Operator):
             #store object location then zero it out
             
             location = ob.location.copy()
-            if batchApplyBool == true:
+            if mytool.batchApplyBool == True:
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            if exportForUnity == true:
+            if mytool.Engine == "Unity":
                 FixRotationForUnity3D()
+                    
             bpy.ops.object.location_clear()
             bpy.ops.object.select_grouped(type='CHILDREN_RECURSIVE')
             #export fbx
@@ -141,11 +146,13 @@ class WM_OT_BatchExport(Operator):
                 else:
                     u.FilePath = mytool.FilePath + ob.name + '.obj'
                     
-            print("Wrote to: " + filename)
+            print("Wrote to: " + u.FilePath)
             if mytool.my_enum == 'F':
-                bpy.ops.export_scene.fbx(filepath=FilePath, use_selection=True)
+                if mytool.Engine == "Unreal":
+                    bpy.ops.export_scene.fbx(filepath=u.FilePath, use_selection=True, global_scale = 100)
+                bpy.ops.export_scene.fbx(filepath=u.FilePath, use_selection=True)
             else:
-                bpy.ops.export_scene.obj(filepath=FilePath, use_selection=True)
+                bpy.ops.export_scene.obj(filepath=u.FilePath, use_selection=True)
             
             #restore location
             ob.location = location
@@ -231,7 +238,7 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.label(text=" ")
         layout.label(text="Export Options:")
         layout.prop(mytool, "batchApplyBool")
-        layout.prop(mytool, "exportForUnity")
+        layout.prop(mytool, "Engine")
         
         layout.label(text=" ")        
         layout.label(text="Export Location:")
