@@ -14,6 +14,8 @@ bl_info = {
 
 import bpy
 import os
+import platform
+import subprocess
 
 from bpy.props import (StringProperty,
                        BoolProperty,
@@ -35,6 +37,8 @@ from bpy.types import (Panel,
 # ------------------------------------------------------------------------
 
 class Utilities():
+    FilePath = ""
+    
     def make_path_absolute(self,key): 
     #""" Prevent Blender's relative paths of doom """ 
     # This can be a collection property or addon preferences 
@@ -106,6 +110,7 @@ class WM_OT_BatchExport(Operator):
         bpy.ops.object.select_all(action='DESELECT')
         scene = context.scene
         mytool = scene.my_tool
+        global Filepath
         
         index = 0
         for ob in objs:
@@ -127,20 +132,20 @@ class WM_OT_BatchExport(Operator):
             #export fbx
             if mytool.FilePath != "":
                 if mytool.my_enum == "F":
-                    filename = mytool.FilePath + ob.name + '.fbx'
+                    u.FilePath = mytool.FilePath + ob.name + '.fbx'
                 else:
-                    filename = mytool.FilePath + ob.name + '.obj'
+                    u.FilePath = mytool.FilePath + ob.name + '.obj'
             else:
                 if mytool.my_enum == "F":
-                    filename = bpy.path.abspath("//") + ob.name + '.fbx'
+                    u.FilePath = bpy.path.abspath("//") + ob.name + '.fbx'
                 else:
-                    filename = mytool.FilePath + ob.name + '.obj'
+                    u.FilePath = mytool.FilePath + ob.name + '.obj'
                     
             print("Wrote to: " + filename)
             if mytool.my_enum == 'F':
-                bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
+                bpy.ops.export_scene.fbx(filepath=FilePath, use_selection=True)
             else:
-                bpy.ops.export_scene.obj(filepath=filename, use_selection=True)
+                bpy.ops.export_scene.obj(filepath=FilePath, use_selection=True)
             
             #restore location
             ob.location = location
@@ -149,6 +154,8 @@ class WM_OT_BatchExport(Operator):
         for ob in objs:
             ob.select_set(state=True)
         return { 'FINISHED' }
+    
+
     
     def FixRotationForUnity3D(self):
         bpy.ops.object.transform_apply(rotation = True)
@@ -163,8 +170,23 @@ class WM_OT_BatchExport(Operator):
     
    
 
-    
+class WM_OT_OpenFileLocation(Operator):
+    bl_idname = "wm.open_file_location"
+    bl_label = "Open File Location"
 
+    def execute(self,context):
+        global Filepath
+        if u.FilePath == "":
+            u.FilePath = bpy.path.abspath("//")
+            
+        if platform.system() == "Windows":
+            os.startfile(u.FilePath)
+        elif platform.system() == "Darwin":
+            subprocess.Popen(["open", FilePath])
+        else:
+            subprocess.Popen(["xdg-open", FilePath])
+        
+        return { 'FINISHED' }
 # ------------------------------------------------------------------------
 #    Menus
 # ------------------------------------------------------------------------
@@ -216,6 +238,7 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "FilePath")
         layout.prop(mytool, "my_enum")
         layout.operator("wm.batch_export")
+        layout.operator("wm.open_file_location")
         #layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
         layout.separator()
 
@@ -227,7 +250,8 @@ classes = (
     MyProperties,
     WM_OT_BatchExport,
     OBJECT_MT_CustomMenu,
-    OBJECT_PT_CustomPanel
+    OBJECT_PT_CustomPanel,
+    WM_OT_OpenFileLocation
 )
 
 def register():
