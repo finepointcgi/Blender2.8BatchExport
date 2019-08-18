@@ -124,7 +124,7 @@ class WM_OT_BatchExport(Operator):
                 else:
                     filename = mytool.FilePath + ob.name + '.obj'
             else:
-                if mytool.my_enum == "O":
+                if mytool.my_enum == "F":
                     filename = bpy.path.abspath("//") + ob.name + '.fbx'
                 else:
                     filename = mytool.FilePath + ob.name + '.obj'
