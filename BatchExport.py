@@ -2,7 +2,7 @@ bl_info = {
     "name": "Batch Exporter",
     "description": "",
     "author": "Mitch McCollum",
-    "version": (0, 0, 2),
+    "version": (1, 8, 17),
     "blender": (2, 80, 0),
     "location": "3D View > Tools",
     "warning": "", # used for warning icon and text in addons panel
@@ -54,7 +54,12 @@ class MyProperties(PropertyGroup):
         description="Batch Rename",
         default = False
         )
-
+        
+    batchApplyBool: BoolProperty(
+        name="Apply Transform",
+        description="Apply Position",
+        default = False
+        )
  
 
     BulkRename: StringProperty(
@@ -73,11 +78,10 @@ class MyProperties(PropertyGroup):
     )
     
     my_enum: EnumProperty(
-        name="Dropdown:",
-        description="Apply Data to attribute.",
-        items=[ ('OP1', "Option 1", ""),
-                ('OP2', "Option 2", ""),
-                ('OP3', "Option 3", ""),
+        name="FileType:",
+        description="What File Format",
+        items=[ ('F', "FBX", ""),
+                ('O', "OBJ", ""),
                ]
         )
     
@@ -106,20 +110,34 @@ class WM_OT_BatchExport(Operator):
             bpy.context.view_layer.objects.active = ob
             
             #store object location then zero it out
+            
             location = ob.location.copy()
+            if batchApplyBool == true:
+                bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+                
             bpy.ops.object.location_clear()
             bpy.ops.object.select_grouped(type='CHILDREN_RECURSIVE')
             #export fbx
             if mytool.FilePath != "":
-                filename = mytool.FilePath + ob.name + '.fbx'
+                if mytool.my_enum == "F":
+                    filename = mytool.FilePath + ob.name + '.fbx'
+                else:
+                    filename = mytool.FilePath + ob.name + '.obj'
             else:
-                filename = bpy.path.abspath("//") + ob.name + '.fbx'
+                if mytool.my_enum == "O":
+                    filename = bpy.path.abspath("//") + ob.name + '.fbx'
+                else:
+                    filename = mytool.FilePath + ob.name + '.obj'
+                    
             print("Wrote to: " + filename)
-            bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
+            if mytool.my_enum == 'F':
+                bpy.ops.export_scene.fbx(filepath=filename, use_selection=True)
+            else:
+                bpy.ops.export_scene.obj(filepath=filename, use_selection=True)
             
             #restore location
             ob.location = location
-          
+        ##FBX  
         #reselect originally selected objects  
         for ob in objs:
             ob.select_set(state=True)
@@ -170,7 +188,9 @@ class OBJECT_PT_CustomPanel(Panel):
         layout.prop(mytool, "batchRenameBool")
 
         layout.prop(mytool, "BulkRename")
+        layout.prop(mytool, "batchApplyBool")
         layout.prop(mytool, "FilePath")
+        layout.prop(mytool, "my_enum")
         layout.operator("wm.batch_export")
         #layout.menu(OBJECT_MT_CustomMenu.bl_idname, text="Presets", icon="SCENE")
         layout.separator()
