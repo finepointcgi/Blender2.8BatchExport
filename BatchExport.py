@@ -55,6 +55,12 @@ class MyProperties(PropertyGroup):
         default = False
         )
         
+    exportForUnity: BoolProperty(
+        name="Unity Export",
+        description="Unity Export",
+        default = False
+        )
+        
     batchApplyBool: BoolProperty(
         name="Apply Transform",
         description="Apply Position",
@@ -114,7 +120,8 @@ class WM_OT_BatchExport(Operator):
             location = ob.location.copy()
             if batchApplyBool == true:
                 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-                
+            if exportForUnity == true:
+                FixRotationForUnity3D()
             bpy.ops.object.location_clear()
             bpy.ops.object.select_grouped(type='CHILDREN_RECURSIVE')
             #export fbx
@@ -142,6 +149,17 @@ class WM_OT_BatchExport(Operator):
         for ob in objs:
             ob.select_set(state=True)
         return { 'FINISHED' }
+    
+    def FixRotationForUnity3D(self):
+        bpy.ops.object.transform_apply(rotation = True)
+
+        bpy.ops.transform.rotate(value = -1.5708, axis = (1, 0, 0), constraint_axis = (True, False, False), constraint_orientation = 'GLOBAL')
+        bpy.ops.transform.rotate(value = -3.1416, axis = (0, 1, 0), constraint_axis = (False, True, False), constraint_orientation = 'GLOBAL')
+
+        bpy.ops.object.transform_apply(rotation = True)
+
+        bpy.ops.transform.rotate(value = 1.5708, axis = (1, 0, 0), constraint_axis = (True, False, False), constraint_orientation = 'GLOBAL')
+        bpy.ops.transform.rotate(value = 3.1416, axis = (0, 0, 1), constraint_axis = (False, False, True), constraint_orientation = 'GLOBAL')
     
    
 
@@ -184,11 +202,17 @@ class OBJECT_PT_CustomPanel(Panel):
         layout = self.layout
         scene = context.scene
         mytool = scene.my_tool
-        
+        layout.label(text="Batch Rename:")
         layout.prop(mytool, "batchRenameBool")
-
         layout.prop(mytool, "BulkRename")
+        
+        layout.label(text=" ")
+        layout.label(text="Export Options:")
         layout.prop(mytool, "batchApplyBool")
+        layout.prop(mytool, "exportForUnity")
+        
+        layout.label(text=" ")        
+        layout.label(text="Export Location:")
         layout.prop(mytool, "FilePath")
         layout.prop(mytool, "my_enum")
         layout.operator("wm.batch_export")
